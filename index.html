@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual Palette Smart Kanban</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* LIGHT THEME - Warm & Professional */
+        :root {
+            /* Light Theme - Warm Professional Palette */
+            --bg-primary: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --bg-accent: #fef7ed;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-tertiary: #64748b;
+            --text-accent: #f97316;
+            --border-primary: #e2e8f0;
+            --border-secondary: #f1f5f9;
+            --border-accent: #fed7aa;
+            --shadow-light: rgba(15, 23, 42, 0.04);
+            --shadow-medium: rgba(15, 23, 42, 0.08);
+            --shadow-dark: rgba(15, 23, 42, 0.12);
+            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --accent-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+        }
+
+        /* DARK THEME - Cool & Modern */
+        [data-theme="dark"] {
+            /* Dark Theme - Cool Cyber Palette */
+            --bg-primary: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-accent: #312e81;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+            --text-accent: #a78bfa;
+            --border-primary: #475569;
+            --border-secondary: #334155;
+            --border-accent: #6366f1;
+            --shadow-light: rgba(0, 0, 0, 0.2);
+            --shadow-medium: rgba(0, 0, 0, 0.3);
+            --shadow-dark: rgba(0, 0, 0, 0.4);
+            --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            --success-color: #22d3ee;
+            --warning-color: #fbbf24;
+            --danger-color: #f87171;
+            --info-color: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: all 0.4s ease;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            background: var(--bg-primary);
+            padding: 24px;
+            transition: background 0.4s ease;
+        }
+
+        .main-card {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px var(--shadow-medium);
+            overflow: hidden;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 48px);
+            transition: all 0.4s ease;
+            border: 1px solid var(--border-primary);
+        }
+
+        .header {
+            background: var(--primary-gradient);
+            padding: 32px 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: rotate(45deg);
+        }
+
+        [data-theme="dark"] .header::before {
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .back-btn, .pdf-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover, .pdf-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            font-size: 18px;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1) rotate(180deg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .board-content {
+            padding: 40px;
+            background: var(--bg-primary);
+            transition: background 0.4s ease;
+        }
+
+        .board-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid var(--border-primary);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--accent-gradient);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px var(--shadow-dark);
+            border-color: var(--text-accent);
+        }
+
+        .stat-card:hover::before {
+            height: 100%;
+            opacity: 0.1;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .kanban-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .kanban-column {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border-primary);
+            overflow: hidden;
+            box-shadow: 0 8px 25px var(--shadow-light);
+            transition: all 0.4s ease;
+            animation: slideUp 0.6s ease forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .kanban-column:nth-child(1) { animation-delay: 0.1s; }
+        .kanban-column:nth-child(2) { animation-delay: 0.2s; }
+
+        .kanban-column:hover {
+            box-shadow: 0 12px 40px var(--shadow-medium);
+        }
+
+        .column-header {
+            padding: 24px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .column-header::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--accent-gradient);
+        }
+
+        .column-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .column-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Light Theme Icons */
+        .todo-icon { 
+            background: linear-gradient(135deg, #ef4444, #dc2626); 
+            color: white;
+        }
+        .done-icon { 
+            background: linear-gradient(135deg, #10b981, #059669); 
+            color: white;
+        }
+
+        /* Dark Theme Icons */
+        [data-theme="dark"] .todo-icon { 
+            background: linear-gradient(135deg, #f87171, #ef4444); 
+        }
+        [data-theme="dark"] .done-icon { 
+            background: linear-gradient(135deg, #22d3ee, #06b6d4); 
+        }
+
+        .task-count {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .tasks-list {
+            padding: 8px 24px 24px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .add-task-in-column {
+            background: var(--bg-accent);
+            border: 2px dashed var(--success-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .add-task-in-column:hover {
+            background: var(--success-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .task-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            cursor: grab;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 5px solid;
+            position: relative;
+            animation: fadeInUp 0.4s ease forwards;
+            transform: translateY(20px);
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        .task-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 100%;
+            background: var(--accent-gradient);
+            transition: width 0.3s ease;
+            opacity: 0.05;
+        }
+
+        .task-card:hover::before {
+            width: 100%;
+        }
+
+        .task-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px var(--shadow-dark);
+            border-color: var(--text-accent);
+        }
+
+        .task-card:active {
+            cursor: grabbing;
+            transform: rotate(2deg) scale(1.02);
+            z-index: 1000;
+        }
+
+        .task-card.dragging {
+            opacity: 0.8;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .task-card.completed {
+            background: linear-gradient(135deg, var(--bg-accent) 0%, var(--bg-tertiary) 100%);
+            border-left-color: var(--success-color);
+        }
+
+        .todo-task { border-left-color: var(--danger-color); }
+        .done-task { border-left-color: var(--success-color); }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .task-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-grow: 1;
+        }
+
+        .task-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--info-color);
+            transform: scale(1.2);
+            transition: transform 0.2s ease;
+        }
+
+        .task-checkbox:hover {
+            transform: scale(1.3);
+        }
+
+        .task-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.4;
+            transition: all 0.3s ease;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+            color: var(--text-tertiary);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .task-card:hover .task-actions {
+            opacity: 1;
+        }
+
+        .task-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .edit-btn {
+            background: linear-gradient(135deg, var(--info-color), #2563eb);
+            color: white;
+        }
+
+        .edit-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .delete-btn {
+            background: linear-gradient(135deg, var(--danger-color), #dc2626);
+            color: white;
+        }
+
+        .delete-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .task-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+            transition: color 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .task-description.completed {
+            color: var(--text-tertiary);
+        }
+
+        .subtasks-container {
+            margin-top: 16px;
+            border-top: 2px solid var(--border-secondary);
+            padding-top: 16px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-left: 3px solid var(--border-accent);
+            padding-left: 16px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            border-radius: 0 10px 10px 0;
+            background: var(--bg-tertiary);
+        }
+
+        .subtask-item:hover {
+            background: var(--bg-accent);
+            border-left-color: var(--text-accent);
+            transform: translateX(4px);
+        }
+
+        .subtask-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--info-color);
+            transition: transform 0.2s ease;
+        }
+
+        .subtask-checkbox:hover {
+            transform: scale(1.2);
+        }
+
+        .subtask-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            flex-grow: 1;
+            transition: all 0.3s ease;
+        }
+
+        .subtask-title.completed {
+            text-decoration: line-through;
+            color: var(--text-tertiary);
+        }
+
+        .subtask-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .subtask-item:hover .subtask-actions {
+            opacity: 1;
+        }
+
+        .subtask-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .subtask-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .add-subtask-container {
+            margin-top: 12px;
+            padding: 8px 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .add-subtask-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 2px solid var(--border-primary);
+            transition: all 0.3s ease;
+        }
+
+        .add-subtask-form:focus-within {
+            border-color: var(--info-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .add-subtask-input {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            padding: 4px 0;
+            color: var(--text-primary);
+            outline: none;
+            font-family: inherit;
+        }
+
+        .add-subtask-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .add-subtask-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .add-subtask-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+
+        .add-subtask-btn:disabled {
+            background: var(--text-tertiary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .task-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-secondary);
+            position: relative;
+            z-index: 2;
+        }
+
+        .subtask-progress {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-primary);
+        }
+
+        .subtask-progress.completed {
+            background: var(--success-color);
+            color: white;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+        }
+
+        .task-date {
+            background: var(--bg-tertiary);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-primary);
+        }
+
+        .add-task-btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.3);
+        }
+
+        .add-task-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.4);
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 32px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-primary);
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            text-align: center;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--border-primary);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--info-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-primary);
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+            filter: grayscale(0.3);
+        }
+
+        .empty-text {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Animations */
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .kanban-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .board-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .app-container {
+                padding: 16px;
+            }
+            
+            .board-content {
+                padding: 24px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        let draggedTask = null;
+
+        const STATUSES = {
+            todo: { name: 'To Do', icon: '📝', color: '#ef4444' },
+            done: { name: 'Done', icon: '✅', color: '#10b981' }
+        };
+
+        const STATUS_ORDER = ['todo', 'done'];
+
+        const generateId = () => Date.now() + Math.random().toString(36).substr(2, 9);
+
+        // Enhanced PDF Export Function with Theme Support
+        const exportToPDF = (board, tasks, isDarkMode) => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            let yPos = 25;
+            const margin = 20;
+            const pageHeight = doc.internal.pageSize.height - 40;
+            
+            const checkPageBreak = (requiredHeight = 20) => {
+                if (yPos + requiredHeight > pageHeight) {
+                    doc.addPage();
+                    yPos = 25;
+                    return true;
+                }
+                return false;
+            };
+
+            // Theme-based colors for PDF
+            const colors = isDarkMode ? {
+                primary: [139, 92, 246],
+                secondary: [6, 182, 212],
+                text: [241, 245, 249],
+                accent: [167, 139, 250]
+            } : {
+                primary: [59, 130, 246],
+                secondary: [245, 158, 11],
+                text: [30, 41, 59],
+                accent: [249, 115, 22]
+            };
+
+            // Main Title
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(24);
+            doc.setTextColor(...colors.primary);
+            doc.text(`🎨 ${board.name} - ${isDarkMode ? 'Dark' : 'Light'} Theme Report`, margin, yPos);
+            yPos += 15;
+            
+            // Date and theme info
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Generated: ${new Date().toLocaleDateString()} • Theme: ${isDarkMode ? 'Dark Mode' : 'Light Mode'}`, margin, yPos);
+            yPos += 8;
+            
+            if (board.description) {
+                doc.text(`Project Description: ${board.description}`, margin, yPos);
+                yPos += 8;
+            }
+            
+            // Separator line with theme color
+            doc.setDrawColor(...colors.accent);
+            doc.line(margin, yPos + 3, doc.internal.pageSize.width - margin, yPos + 3);
+            yPos += 15;
+
+            // Executive Summary with themed styling
+            checkPageBreak(60);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.setTextColor(...colors.primary);
+            doc.text(`🚀 Dual-Palette Summary`, margin, yPos);
+            yPos += 12;
+            
+            // Summary box with theme colors
+            doc.setFillColor(isDarkMode ? 30 : 248, isDarkMode ? 41 : 250, isDarkMode ? 59 : 252);
+            doc.rect(margin, yPos, doc.internal.pageSize.width - 2 * margin, 45, 'F');
+            doc.setDrawColor(...colors.secondary);
+            doc.rect(margin, yPos, doc.internal.pageSize.width - 2 * margin, 45);
+            yPos += 10;
+            
+            // Calculate metrics
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(t => t.completed).length;
+            const todoTasks = tasks.filter(t => t.status === 'todo').length;
+            const doneTasks = tasks.filter(t => t.status === 'done').length;
+            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            
+            let totalSubtasks = 0;
+            let completedSubtasks = 0;
+            tasks.forEach(task => {
+                if (task.subtasks) {
+                    totalSubtasks += task.subtasks.length;
+                    completedSubtasks += task.subtasks.filter(sub => sub.completed).length;
+                }
+            });
+            const subtaskCompletionRate = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(51, 51, 51);
+            
+            // Left column
+            doc.text(`Task Overview:`, margin + 5, yPos);
+            yPos += 6;
+            doc.text(`• Total: ${totalTasks} tasks`, margin + 10, yPos);
+            yPos += 5;
+            doc.text(`• Completed: ${completedTasks} (${completionRate}%)`, margin + 10, yPos);
+            yPos += 5;
+            doc.text(`• In Todo: ${todoTasks} tasks`, margin + 10, yPos);
+            yPos += 8;
+            
+            // Right column with theme info
+            const midPoint = doc.internal.pageSize.width / 2;
+            yPos -= 18;
+            doc.text(`Theme & Sync:`, midPoint, yPos);
+            yPos += 6;
+            doc.text(`• UI Theme: ${isDarkMode ? 'Dark (Cool Cyber)' : 'Light (Warm Pro)'}`, midPoint + 5, yPos);
+            yPos += 5;
+            doc.text(`• Subtasks: ${completedSubtasks}/${totalSubtasks} (${subtaskCompletionRate}%)`, midPoint + 5, yPos);
+            yPos += 5;
+            doc.text(`• Perfect Sync: ${completedTasks === doneTasks ? 'Yes ✓' : 'No ⚠'}`, midPoint + 5, yPos);
+            yPos += 20;
+
+            // Task Details with theme styling
+            checkPageBreak(30);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.setTextColor(...colors.primary);
+            doc.text('📋 Task Details by Theme', margin, yPos);
+            yPos += 15;
+            
+            Object.entries(STATUSES).forEach(([status, config]) => {
+                const statusTasks = tasks.filter(t => t.status === status);
+                if (statusTasks.length === 0) return;
+                
+                checkPageBreak(25);
+                
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.setTextColor(...colors.secondary);
+                doc.text(`${config.icon} ${config.name} (${statusTasks.length} tasks)`, margin, yPos);
+                yPos += 12;
+                
+                statusTasks.forEach((task, index) => {
+                    checkPageBreak(25);
+                    
+                    // Task header with theme-aware styling
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.setTextColor(51, 51, 51);
+                    const prefix = task.completed ? '✅' : '⭕';
+                    const themeIndicator = isDarkMode ? '🌙' : '☀️';
+                    doc.text(`${index + 1}. ${prefix} ${themeIndicator} ${task.title}`, margin + 3, yPos);
+                    yPos += 7;
+                    
+                    // Task description
+                    if (task.description) {
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(9);
+                        doc.setTextColor(100, 100, 100);
+                        const lines = doc.splitTextToSize(task.description, doc.internal.pageSize.width - 2 * margin - 20);
+                        doc.text(lines, margin + 8, yPos);
+                        yPos += lines.length * 4;
+                    }
+                    
+                    // Subtasks with theme colors
+                    if (task.subtasks && task.subtasks.length > 0) {
+                        const completedSubs = task.subtasks.filter(s => s.completed).length;
+                        const syncIcon = (completedSubs === task.subtasks.length && task.completed) || (completedSubs === 0 && !task.completed) ? '🔄' : '⚠️';
+                        
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(9);
+                        doc.setTextColor(...colors.accent);
+                        doc.text(`   📝 ${syncIcon} Subtasks (${completedSubs}/${task.subtasks.length}):`, margin + 8, yPos);
+                        yPos += 6;
+                        
+                        task.subtasks.forEach((subtask, subIndex) => {
+                            checkPageBreak(8);
+                            const subPrefix = subtask.completed ? '✅' : '⭕';
+                            doc.setFontSize(8);
+                            doc.setTextColor(100, 100, 100);
+                            doc.text(`     ${subIndex + 1}. ${subPrefix} ${subtask.title}`, margin + 12, yPos);
+                            yPos += 4;
+                        });
+                        yPos += 2;
+                    }
+                    
+                    // Task metadata
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(156, 163, 175);
+                    doc.text(`   Created: ${new Date(task.createdAt).toLocaleDateString()}`, margin + 8, yPos);
+                    yPos += 10;
+                });
+                
+                yPos += 8;
+            });
+
+            // Theme-specific footer
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(156, 163, 175);
+                const footerText = `${board.name} • ${isDarkMode ? 'Dark Theme' : 'Light Theme'} • Page ${i}/${totalPages} • Dual-Palette Kanban`;
+                const textWidth = doc.getTextWidth(footerText);
+                const centerX = (doc.internal.pageSize.width - textWidth) / 2;
+                doc.text(footerText, centerX, doc.internal.pageSize.height - 15);
+            }
+            
+            // Save PDF with theme in filename
+            const themeTag = isDarkMode ? '_dark' : '_light';
+            const fileName = `${board.name.replace(/[^a-z0-9]/gi, '_')}${themeTag}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+        };
+
+        function App() {
+            const [boards, setBoards] = useState(() => {
+                const saved = localStorage.getItem('dual_palette_boards');
+                return saved ? JSON.parse(saved) : [];
+            });
+            const [currentBoard, setCurrentBoard] = useState(null);
+            const [isDarkMode, setIsDarkMode] = useState(() => {
+                const saved = localStorage.getItem('dual_palette_theme');
+                return saved ? JSON.parse(saved) : false;
+            });
+
+            useEffect(() => {
+                localStorage.setItem('dual_palette_boards', JSON.stringify(boards));
+            }, [boards]);
+
+            useEffect(() => {
+                localStorage.setItem('dual_palette_theme', JSON.stringify(isDarkMode));
+                document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+            }, [isDarkMode]);
+
+            const toggleTheme = () => {
+                setIsDarkMode(!isDarkMode);
+            };
+
+            const addBoard = (name, description) => {
+                const newBoard = {
+                    id: Date.now(),
+                    name: name.trim(),
+                    description: description.trim(),
+                    tasks: [],
+                    createdAt: new Date().toISOString()
+                };
+                setBoards([...boards, newBoard]);
+            };
+
+            const deleteBoard = (id) => {
+                if (confirm('Delete this board? This action cannot be undone.')) {
+                    setBoards(boards.filter(b => b.id !== id));
+                    if (currentBoard && currentBoard.id === id) {
+                        setCurrentBoard(null);
+                    }
+                }
+            };
+
+            const updateBoard = (updatedBoard) => {
+                setBoards(boards.map(b => b.id === updatedBoard.id ? updatedBoard : b));
+                setCurrentBoard(updatedBoard);
+            };
+
+            if (!currentBoard) {
+                return <BoardList 
+                    boards={boards} 
+                    onSelectBoard={setCurrentBoard}
+                    onAddBoard={addBoard}
+                    onDeleteBoard={deleteBoard}
+                    isDarkMode={isDarkMode}
+                    onToggleTheme={toggleTheme}
+                />;
+            }
+
+            return <KanbanBoard 
+                board={currentBoard}
+                onBack={() => setCurrentBoard(null)}
+                onUpdateBoard={updateBoard}
+                isDarkMode={isDarkMode}
+                onToggleTheme={toggleTheme}
+            />;
+        }
+
+        function BoardList({ boards, onSelectBoard, onAddBoard, onDeleteBoard, isDarkMode, onToggleTheme }) {
+            const [showModal, setShowModal] = useState(false);
+            const [formData, setFormData] = useState({ name: '', description: '' });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (formData.name.trim()) {
+                    onAddBoard(formData.name, formData.description);
+                    setFormData({ name: '', description: '' });
+                    setShowModal(false);
+                }
+            };
+
+            const totalTasks = boards.reduce((total, board) => total + (board.tasks?.length || 0), 0);
+            const completedTasks = boards.reduce((total, board) => 
+                total + (board.tasks?.filter(t => t.completed).length || 0), 0);
+
+            return (
+                <div className="app-container">
+                    <div className="main-card">
+                        <div className="header">
+                            <div className="header-content">
+                                <div>
+                                    <h1>🎨 Dual-Palette Kanban</h1>
+                                    <p>Beautiful {isDarkMode ? 'dark cyber' : 'warm professional'} theme with perfect sync</p>
+                                </div>
+                                <div className="header-actions">
+                                    <button className="theme-toggle" onClick={onToggleTheme} title="Toggle theme">
+                                        {isDarkMode ? '☀️' : '🌙'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="board-content">
+                            <div className="board-stats">
+                                <div className="stat-card">
+                                    <div className="stat-number">{boards.length}</div>
+                                    <div className="stat-label">Total Boards</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-number">{totalTasks}</div>
+                                    <div className="stat-label">Total Tasks</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-number">{completedTasks}</div>
+                                    <div className="stat-label">Completed</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-number">
+                                        {totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%
+                                    </div>
+                                    <div className="stat-label">Overall Progress</div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '32px' }}>
+                                <button 
+                                    className="add-task-btn"
+                                    onClick={() => setShowModal(true)}
+                                >
+                                    <span>✨</span>
+                                    Create New Board
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
+                                {boards.map(board => (
+                                    <div key={board.id} style={{
+                                        background: 'var(--bg-secondary)',
+                                        borderRadius: '20px',
+                                        border: '1px solid var(--border-primary)',
+                                        padding: '24px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        position: 'relative',
+                                        overflow: 'hidden'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-4px)';
+                                        e.currentTarget.style.boxShadow = '0 12px 40px var(--shadow-dark)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                    onClick={() => onSelectBoard(board)}>
+                                        
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '4px',
+                                            background: 'var(--accent-gradient)'
+                                        }}></div>
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteBoard(board.id);
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '16px',
+                                                right: '16px',
+                                                background: 'var(--danger-color)',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '32px',
+                                                height: '32px',
+                                                cursor: 'pointer',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}
+                                        >×</button>
+
+                                        <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                                            {board.name}
+                                        </h3>
+                                        {board.description && (
+                                            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.4' }}>
+                                                {board.description}
+                                            </p>
+                                        )}
+                                        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>{board.tasks?.length || 0} tasks</span>
+                                            <span>{new Date(board.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {boards.length === 0 && (
+                                <div className="empty-state">
+                                    <div className="empty-icon">🎨</div>
+                                    <div className="empty-text">No boards yet. Create your first dual-palette board!</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {showModal && (
+                        <div className="modal" onClick={() => setShowModal(false)}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">Create New Board</div>
+                                <form onSubmit={handleSubmit}>
+                                    <div className="form-group">
+                                        <label className="form-label">Board Name *</label>
+                                        <input 
+                                            className="form-input"
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            placeholder="Enter board name..."
+                                            required
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Description</label>
+                                        <textarea 
+                                            className="form-textarea"
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                            placeholder="Describe your board..."
+                                        />
+                                    </div>
+                                    <div className="form-actions">
+                                        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                                            Cancel
+                                        </button>
+                                        <button type="submit" className="btn btn-primary">
+                                            Create Board
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function KanbanBoard({ board, onBack, onUpdateBoard, isDarkMode, onToggleTheme }) {
+            const [tasks, setTasks] = useState(board.tasks || []);
+            const [showModal, setShowModal] = useState(false);
+            const [editingTask, setEditingTask] = useState(null);
+            const [formData, setFormData] = useState({ title: '', description: '' });
+
+            const updateTasks = (newTasks) => {
+                setTasks(newTasks);
+                onUpdateBoard({ ...board, tasks: newTasks });
+            };
+
+            // Perfect synchronization logic (same as before)
+            const updateTaskCompletion = (taskId, completed) => {
+                const updatedTasks = tasks.map(task => {
+                    if (task.id === taskId) {
+                        let updatedTask = { ...task, completed };
+                        
+                        if (updatedTask.subtasks && updatedTask.subtasks.length > 0) {
+                            updatedTask.subtasks = updatedTask.subtasks.map(subtask => ({
+                                ...subtask,
+                                completed
+                            }));
+                        }
+
+                        if (completed) {
+                            updatedTask.status = 'done';
+                        } else {
+                            updatedTask.status = 'todo';
+                        }
+
+                        return updatedTask;
+                    }
+                    return task;
+                });
+
+                updateTasks(updatedTasks);
+            };
+
+            const updateSubtaskCompletion = (taskId, subtaskId, completed) => {
+                const updatedTasks = tasks.map(task => {
+                    if (task.id === taskId) {
+                        const updatedSubtasks = task.subtasks.map(subtask =>
+                            subtask.id === subtaskId ? { ...subtask, completed } : subtask
+                        );
+
+                        const allSubtasksCompleted = updatedSubtasks.every(sub => sub.completed);
+                        const noSubtasksCompleted = !updatedSubtasks.some(sub => sub.completed);
+
+                        let updatedTask = {
+                            ...task,
+                            subtasks: updatedSubtasks
+                        };
+
+                        if (allSubtasksCompleted) {
+                            updatedTask.completed = true;
+                            updatedTask.status = 'done';
+                        } else if (noSubtasksCompleted) {
+                            updatedTask.completed = false;
+                            updatedTask.status = 'todo';
+                        } else {
+                            updatedTask.completed = false;
+                            updatedTask.status = 'todo';
+                        }
+
+                        return updatedTask;
+                    }
+                    return task;
+                });
+
+                updateTasks(updatedTasks);
+            };
+
+            const handleAddTask = (e) => {
+                e.preventDefault();
+                if (formData.title.trim()) {
+                    const newTask = {
+                        id: generateId(),
+                        title: formData.title.trim(),
+                        description: formData.description.trim(),
+                        status: 'todo',
+                        completed: false,
+                        subtasks: [],
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    if (editingTask) {
+                        updateTasks(tasks.map(t => t.id === editingTask.id ? { ...t, ...formData } : t));
+                    } else {
+                        updateTasks([...tasks, newTask]);
+                    }
+                    
+                    setFormData({ title: '', description: '' });
+                    setEditingTask(null);
+                    setShowModal(false);
+                }
+            };
+
+            const handleDeleteTask = (taskId) => {
+                if (confirm('Delete this task and all its subtasks?')) {
+                    updateTasks(tasks.filter(t => t.id !== taskId));
+                }
+            };
+
+            const handleDragStart = (task) => {
+                draggedTask = task;
+            };
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+            };
+
+            const handleDrop = (status) => {
+                if (draggedTask && draggedTask.status !== status) {
+                    updateTasks(tasks.map(t => 
+                        t.id === draggedTask.id ? { ...t, status } : t
+                    ));
+                }
+                draggedTask = null;
+            };
+
+            const handleAddSubtask = (taskId, subtaskTitle) => {
+                if (!subtaskTitle.trim()) return;
+
+                const newSubtask = {
+                    id: generateId(),
+                    title: subtaskTitle.trim(),
+                    completed: false
+                };
+
+                updateTasks(tasks.map(task => 
+                    task.id === taskId 
+                        ? { ...task, subtasks: [...(task.subtasks || []), newSubtask] }
+                        : task
+                ));
+            };
+
+            const handleDeleteSubtask = (taskId, subtaskId) => {
+                const updatedTasks = tasks.map(task => {
+                    if (task.id === taskId) {
+                        const remainingSubtasks = task.subtasks.filter(sub => sub.id !== subtaskId);
+                        
+                        let updatedTask = { ...task, subtasks: remainingSubtasks };
+                        
+                        if (remainingSubtasks.length === 0) {
+                            return updatedTask;
+                        } else {
+                            const allCompleted = remainingSubtasks.every(sub => sub.completed);
+                            const noneCompleted = !remainingSubtasks.some(sub => sub.completed);
+                            
+                            if (allCompleted) {
+                                updatedTask.completed = true;
+                                updatedTask.status = 'done';
+                            } else if (noneCompleted) {
+                                updatedTask.completed = false;
+                                updatedTask.status = 'todo';
+                            } else {
+                                updatedTask.completed = false;
+                                updatedTask.status = 'todo';
+                            }
+                            
+                            return updatedTask;
+                        }
+                    }
+                    return task;
+                });
+                
+                updateTasks(updatedTasks);
+            };
+
+            const getTasksByStatus = (status) => tasks.filter(t => t.status === status);
+
+            const completedTasks = tasks.filter(t => t.completed).length;
+            const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+            return (
+                <div className="app-container">
+                    <div className="main-card">
+                        <div className="header">
+                            <div className="header-content">
+                                <div>
+                                    <button className="back-btn" onClick={onBack}>
+                                        ← Back to Boards
+                                    </button>
+                                    <h1>{board.name}</h1>
+                                    <p>{board.description || `Beautiful ${isDarkMode ? 'dark cyber' : 'warm professional'} theme`}</p>
+                                </div>
+                                <div className="header-actions">
+                                    <button 
+                                        className="pdf-btn"
+                                        onClick={() => exportToPDF(board, tasks, isDarkMode)}
+                                    >
+                                        📄 Export {isDarkMode ? 'Dark' : 'Light'} Report
+                                    </button>
+                                    <button className="theme-toggle" onClick={onToggleTheme} title="Toggle theme">
+                                        {isDarkMode ? '☀️' : '🌙'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="board-content">
+                            <div className="board-stats">
+                                <div className="stat-card">
+                                    <div className="stat-number">{tasks.length}</div>
+                                    <div className="stat-label">Total Tasks</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-number">{getTasksByStatus('todo').length}</div>
+                                    <div className="stat-label">To Do</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-number">{completedTasks}</div>
+                                    <div className="stat-label">Completed</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-number">{completionRate}%</div>
+                                    <div className="stat-label">Progress</div>
+                                </div>
+                            </div>
+
+                            <div className="kanban-container">
+                                {Object.entries(STATUSES).map(([status, config]) => (
+                                    <div 
+                                        key={status}
+                                        className="kanban-column"
+                                        onDragOver={handleDragOver}
+                                        onDrop={() => handleDrop(status)}
+                                    >
+                                        <div className="column-header">
+                                            <div className="column-title">
+                                                <div className={`column-icon ${status === 'todo' ? 'todo-icon' : 'done-icon'}`}>
+                                                    {config.icon}
+                                                </div>
+                                                {config.name}
+                                            </div>
+                                            <div className="task-count">
+                                                {getTasksByStatus(status).length}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="tasks-list">
+                                            {status === 'todo' && (
+                                                <div 
+                                                    className="add-task-in-column"
+                                                    onClick={() => {
+                                                        setEditingTask(null);
+                                                        setFormData({ title: '', description: '' });
+                                                        setShowModal(true);
+                                                    }}
+                                                >
+                                                    ✨ Add New Task
+                                                </div>
+                                            )}
+
+                                            {getTasksByStatus(status).map((task, index) => {
+                                                const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
+                                                const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
+                                                
+                                                return (
+                                                    <TaskCard
+                                                        key={task.id}
+                                                        task={task}
+                                                        status={status}
+                                                        index={index}
+                                                        totalSubtasks={totalSubtasks}
+                                                        completedSubtasks={completedSubtasks}
+                                                        onTaskCheck={updateTaskCompletion}
+                                                        onSubtaskCheck={updateSubtaskCompletion}
+                                                        onEdit={(task) => {
+                                                            setEditingTask(task);
+                                                            setFormData({ title: task.title, description: task.description });
+                                                            setShowModal(true);
+                                                        }}
+                                                        onDelete={handleDeleteTask}
+                                                        onAddSubtask={handleAddSubtask}
+                                                        onDeleteSubtask={handleDeleteSubtask}
+                                                        onDragStart={handleDragStart}
+                                                    />
+                                                );
+                                            })}
+                                            
+                                            {getTasksByStatus(status).length === 0 && status !== 'todo' && (
+                                                <div className="empty-state">
+                                                    <div className="empty-icon">{config.icon}</div>
+                                                    <div className="empty-text">No tasks here</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {showModal && (
+                        <div className="modal" onClick={() => setShowModal(false)}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    {editingTask ? 'Edit Task' : 'Create New Task'}
+                                </div>
+                                <form onSubmit={handleAddTask}>
+                                    <div className="form-group">
+                                        <label className="form-label">Task Title *</label>
+                                        <input 
+                                            className="form-input"
+                                            type="text"
+                                            value={formData.title}
+                                            onChange={(e) => setFormData({...formData, title: e.target.value})}
+                                            placeholder="Enter task title..."
+                                            required
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Description</label>
+                                        <textarea 
+                                            className="form-textarea"
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                            placeholder="Describe your task..."
+                                        />
+                                    </div>
+                                    <div className="form-actions">
+                                        <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                                            Cancel
+                                        </button>
+                                        <button type="submit" className="btn btn-primary">
+                                            {editingTask ? 'Update Task' : 'Create Task'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // TaskCard Component (same as before but with new styling)
+        function TaskCard({ 
+            task, 
+            status, 
+            index, 
+            totalSubtasks, 
+            completedSubtasks, 
+            onTaskCheck, 
+            onSubtaskCheck, 
+            onEdit, 
+            onDelete, 
+            onAddSubtask, 
+            onDeleteSubtask, 
+            onDragStart 
+        }) {
+            const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+
+            const handleAddSubtask = (e) => {
+                e.preventDefault();
+                if (newSubtaskTitle.trim()) {
+                    onAddSubtask(task.id, newSubtaskTitle);
+                    setNewSubtaskTitle('');
+                }
+            };
+
+            return (
+                <div
+                    className={`task-card ${status === 'todo' ? 'todo-task' : 'done-task'} ${task.completed ? 'completed' : ''}`}
+                    draggable
+                    onDragStart={() => onDragStart(task)}
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                    <div className="task-header">
+                        <div className="task-title-container">
+                            <input 
+                                type="checkbox"
+                                className="task-checkbox"
+                                checked={task.completed}
+                                onChange={(e) => onTaskCheck(task.id, e.target.checked)}
+                            />
+                            <div className={`task-title ${task.completed ? 'completed' : ''}`}>
+                                {task.title}
+                            </div>
+                        </div>
+                        <div className="task-actions">
+                            <button 
+                                className="task-btn edit-btn"
+                                onClick={() => onEdit(task)}
+                            >
+                                ✏️
+                            </button>
+                            <button 
+                                className="task-btn delete-btn"
+                                onClick={() => onDelete(task.id)}
+                            >
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {task.description && (
+                        <div className={`task-description ${task.completed ? 'completed' : ''}`}>
+                            {task.description}
+                        </div>
+                    )}
+
+                    {task.subtasks && task.subtasks.length > 0 && (
+                        <div className="subtasks-container">
+                            {task.subtasks.map(subtask => (
+                                <div key={subtask.id} className="subtask-item">
+                                    <input 
+                                        type="checkbox"
+                                        className="subtask-checkbox"
+                                        checked={subtask.completed}
+                                        onChange={(e) => onSubtaskCheck(task.id, subtask.id, e.target.checked)}
+                                    />
+                                    <div className={`subtask-title ${subtask.completed ? 'completed' : ''}`}>
+                                        {subtask.title}
+                                    </div>
+                                    <div className="subtask-actions">
+                                        <button 
+                                            className="subtask-btn"
+                                            onClick={() => onDeleteSubtask(task.id, subtask.id)}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="add-subtask-container">
+                        <form onSubmit={handleAddSubtask} className="add-subtask-form">
+                            <input 
+                                type="text"
+                                className="add-subtask-input"
+                                value={newSubtaskTitle}
+                                onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                placeholder="Add a subtask..."
+                            />
+                            <button 
+                                type="submit" 
+                                className="add-subtask-btn"
+                                disabled={!newSubtaskTitle.trim()}
+                            >
+                                Add
+                            </button>
+                        </form>
+                    </div>
+
+                    <div className="task-footer">
+                        <div className="task-date">
+                            {new Date(task.createdAt).toLocaleDateString()}
+                        </div>
+                        {totalSubtasks > 0 && (
+                            <div className={`subtask-progress ${completedSubtasks === totalSubtasks ? 'completed' : ''}`}>
+                                {completedSubtasks}/{totalSubtasks} subtasks
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
