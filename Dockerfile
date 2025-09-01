@@ -1,6 +1,9 @@
-FROM node:18-alpine
+FROM python:3.11-alpine
+
 WORKDIR /app
-COPY public/ ./public
-RUN npm install -g serve
+COPY index.html ./
+
 EXPOSE 6666
-CMD ["serve", "-s", "public", "-l", "6666", "--no-clipboard"]
+
+CMD ["python", "-m", "http.server", "6666", "--bind", "0.0.0.0"]
+
