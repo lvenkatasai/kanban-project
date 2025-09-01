@@ -1,9 +1,10 @@
-FROM python:3.11-alpine
+FROM nginx:alpine
 
-WORKDIR /app
-COPY index.html ./
+# Copy your app
+COPY index.html /usr/share/nginx/html/
 
+# Expose port 6666
 EXPOSE 6666
 
-CMD ["python", "-m", "http.server", "6666", "--bind", "0.0.0.0"]
-
+# Start nginx on port 6666
+CMD ["sh", "-c", "sed -i 's/listen       80;/listen       6666;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
